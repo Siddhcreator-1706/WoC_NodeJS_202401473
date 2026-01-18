@@ -4,20 +4,26 @@
   "description": "This is a project for WoC - 8.0 under NodeJS category.",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "build-client": "cd frontend && npm install && npm run build"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Siddhcreator-1706/WoC_NodeJS_202401473.git"
   },
-  "author": "",
+  "author": "Siddh Shah",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Siddhcreator-1706/WoC_NodeJS_202401473/issues"
   },
   "homepage": "https://github.com/Siddhcreator-1706/WoC_NodeJS_202401473#readme",
   "keywords": [],
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "nodemon": "^3.1.11"
   }
 }
