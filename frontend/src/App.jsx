@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react';
+import Navbar from './components/Navbar';
 import NoteForm from './components/NoteForm';
 import NoteList from './components/NoteList';
+import Login from './components/Login';
+import Signup from './components/Signup';
 
 function App() {
   const [notes, setNotes] = useState([]);
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('login'); // 'login', 'signup', 'home'
 
   useEffect(() => {
-    fetchNotes();
-  }, []);
+    if (user) {
+      fetchNotes();
+    }
+  }, [user]);
 
   const fetchNotes = async () => {
     try {
-      const res = await fetch('/notes'); // Using /notes to match backend
+      const res = await fetch('/notes');
       if (res.ok) {
         const data = await res.json();
         setNotes(data);
@@ -48,21 +55,46 @@ function App() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-halloween-dark text-white p-8">
-      <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-12">
-          <h1 className="text-6xl font-spooky text-halloween-orange mb-4 drop-shadow-[0_0_10px_rgba(255,117,24,0.5)]">
-            Spooky Notes
-          </h1>
-          <p className="text-halloween-purple text-lg italic animate-pulse">
-            Keep your secrets safe in the dark...
-          </p>
-        </header>
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setView('home');
+  };
 
-        <NoteForm onAdd={addNote} />
-        <NoteList notes={notes} onDelete={deleteNote} />
-      </div>
+  const handleLogout = () => {
+    setUser(null);
+    setView('login');
+    setNotes([]);
+  };
+
+  return (
+    <div className="min-h-screen bg-halloween-darker text-halloween-text font-sans selection:bg-halloween-orange selection:text-white pb-12">
+      <Navbar user={user} onViewChange={setView} onLogout={handleLogout} />
+
+      <main className="max-w-4xl mx-auto pt-24 px-6">
+        {!user ? (
+          view === 'login' ? (
+            <Login onLogin={handleLogin} switchToSignup={() => setView('signup')} />
+          ) : (
+            <Signup onSignup={handleLogin} switchToLogin={() => setView('login')} />
+          )
+        ) : (
+          <div className="animate-fade-in-up">
+            <header className="text-center mb-12">
+              <h2 className="text-5xl font-bold text-white mb-4 font-spooky tracking-widest drop-shadow-[0_0_15px_rgba(255,107,0,0.4)]">
+                Your Grimoire
+              </h2>
+              <p className="text-halloween-purple text-lg italic">
+                Secrets documented: {notes.length}
+              </p>
+            </header>
+
+            <NoteForm onAdd={addNote} />
+            <div className="mt-12">
+              <NoteList notes={notes} onDelete={deleteNote} />
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

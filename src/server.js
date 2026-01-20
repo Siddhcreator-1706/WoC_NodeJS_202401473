@@ -1,26 +1,23 @@
-require('dotenv').config(); // Load environment variables
 const express = require('express');
-const path = require('path'); // Node.js module for path manipulation
+const path = require('path');
 const app = express();
-const notesRouter = require('./routes/notes'); // Import notes router
-const logger = require('./middleware/logger'); // Import logger middleware
-const PORT = process.env.PORT || 3000; // Use environment variable
+const notesRouter = require('./routes/notes');
+const authRouter = require('./routes/auth');
+const logger = require('./middleware/logger');
+require('dotenv').config();
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json()); // Parse JSON bodies
-app.use(logger); // Custom request logger
-app.use(express.static(path.join(__dirname, '../frontend/dist'))); // Serve React app
+app.use(express.json());
+app.use(logger);
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// GET /test - Basic test route
 app.get('/test', (req, res) => {
   res.json({ message: 'Express server is working!', status: 'success' });
 });
 
-// Routes
-app.use('/notes', notesRouter); // Mount notes router at /notes
+app.use('/notes', notesRouter);
+app.use('/auth', authRouter);
 
-
-// Serve React App for any other requests (Client-side routing support)
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });

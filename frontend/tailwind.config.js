@@ -7,10 +7,14 @@ export default {
     theme: {
         extend: {
             colors: {
-                'halloween-dark': '#121212',
-                'halloween-orange': '#ff7518',
-                'halloween-purple': '#9d00ff',
-                'halloween-card': '#1e1e1e',
+                'halloween-dark': '#0f0e13',
+                'halloween-darker': '#050505',
+                'halloween-orange': '#ff6b00',
+                'halloween-orange-dim': '#bd4f00',
+                'halloween-purple': '#b026ff',
+                'halloween-purple-dim': '#7c1ac0',
+                'halloween-card': '#1a191f',
+                'halloween-text': '#e0e0e0',
             },
             fontFamily: {
                 'spooky': ['"Creepster"', 'cursive'],

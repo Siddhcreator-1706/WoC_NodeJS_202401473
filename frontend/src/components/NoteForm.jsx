@@ -13,35 +13,35 @@ const NoteForm = ({ onAdd }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="bg-halloween-card p-6 rounded-lg shadow-lg border border-halloween-purple mb-8 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-halloween-purple to-halloween-orange"></div>
+        <form onSubmit={handleSubmit} className="bg-halloween-card/50 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-halloween-purple/20 mb-12 relative overflow-hidden group hover:border-halloween-orange/30 transition-colors duration-500">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-halloween-purple via-halloween-orange to-halloween-purple bg-[length:200%_100%] animate-[shimmer_3s_infinite_linear]"></div>
 
-            <div className="mb-4">
+            <div className="mb-6">
                 <input
                     type="text"
-                    placeholder="Spooky Title..."
+                    placeholder="Subject of your documentation..."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus:outline-none focus:border-halloween-orange transition-colors placeholder-gray-500"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-lg font-bold focus:outline-none focus:border-halloween-orange focus:ring-1 focus:ring-halloween-orange transition-all placeholder-gray-600"
                     required
                 />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-8">
                 <textarea
-                    placeholder="Eerie details..."
+                    placeholder="Document your findings here..."
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white h-32 focus:outline-none focus:border-halloween-orange transition-colors placeholder-gray-500"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-gray-300 h-40 focus:outline-none focus:border-halloween-orange focus:ring-1 focus:ring-halloween-orange transition-all placeholder-gray-600 resize-none font-medium leading-relaxed"
                     required
                 />
             </div>
 
             <button
                 type="submit"
-                className="w-full bg-halloween-orange hover:bg-orange-600 text-black font-bold py-3 px-4 rounded transition-all transform hover:scale-[1.02] font-spooky tracking-widest text-xl shadow-[0_0_15px_rgba(255,117,24,0.3)]"
+                className="w-full bg-gradient-to-r from-halloween-orange-dim to-halloween-orange hover:from-halloween-orange hover:to-halloween-orange-dim text-white font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-[1.01] hover:shadow-lg hover:shadow-halloween-orange/20 font-spooky tracking-widest text-2xl"
             >
-                SUMMON NOTE
+                INSCRIBE NOTE
             </button>
         </form>
     );
