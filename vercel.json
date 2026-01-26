@@ -1,0 +1,25 @@
+{
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/auth/(.*)",
+            "destination": "/src/server.js"
+        },
+        {
+            "source": "/notes/(.*)",
+            "destination": "/src/server.js"
+        },
+        {
+            "source": "/admin/(.*)",
+            "destination": "/src/server.js"
+        },
+        {
+            "source": "/test",
+            "destination": "/src/server.js"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
