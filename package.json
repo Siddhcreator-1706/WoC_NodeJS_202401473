@@ -2,7 +2,7 @@
   "name": "woc_nodejs_202401473",
   "version": "1.0.0",
   "description": "This is a project for WoC - 8.0 under NodeJS category.",
-  "main": "api/index.js",
+  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",

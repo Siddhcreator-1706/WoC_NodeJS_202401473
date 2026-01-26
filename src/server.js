@@ -14,6 +14,9 @@ const logger = require('./middleware/logger');
 const PORT = process.env.PORT || 3000;
 const app = express();
 
+// Trust Vercel Proxy (Required for Rate Limiting)
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
