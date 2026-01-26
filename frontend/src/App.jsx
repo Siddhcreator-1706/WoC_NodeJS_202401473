@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
 import NoteForm from './components/NoteForm';
@@ -14,13 +14,16 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Memoize random particles to avoid "impure render" errors with Math.random()
-  const particles = useMemo(() => {
-    return [...Array(20)].map(() => ({
+  // Move random particle generation to useEffect to avoid "impure render" errors
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    setParticles([...Array(20)].map(() => ({
       left: Math.random() * 100,
       top: Math.random() * 100,
       duration: 5 + Math.random() * 5,
       delay: Math.random() * 5
-    }));
+    })));
   }, []);
 
   const getAuthHeaders = useCallback(() => {
@@ -85,6 +88,7 @@ function App() {
     if (user) {
       fetchNotes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, fetchNotes]);
 
   const addNote = async (note) => {
