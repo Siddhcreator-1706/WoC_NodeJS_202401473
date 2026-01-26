@@ -119,7 +119,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                     ease: 'power2.out'
                 });
             }
-        } catch (err) {
+        } catch {
             setServerError('Something went wrong. Try again.');
         } finally {
             setIsLoading(false);

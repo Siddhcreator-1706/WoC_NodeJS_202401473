@@ -98,7 +98,7 @@ const Login = ({ onLogin, switchToSignup }) => {
                     ease: 'power2.out'
                 });
             }
-        } catch (err) {
+        } catch {
             setServerError('Something went wrong. Try again.');
         } finally {
             setIsLoading(false);
@@ -167,8 +167,8 @@ const Login = ({ onLogin, switchToSignup }) => {
                         variants={inputVariants}
                         whileFocus="focus"
                         className={`w-full p-3 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.email
-                                ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                                : 'border-white/10 focus:border-halloween-orange focus:ring-1 focus:ring-halloween-orange'
+                            ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                            : 'border-white/10 focus:border-halloween-orange focus:ring-1 focus:ring-halloween-orange'
                             }`}
                         placeholder="e.g. vampire@crypt.com"
                     />
@@ -200,8 +200,8 @@ const Login = ({ onLogin, switchToSignup }) => {
                         variants={inputVariants}
                         whileFocus="focus"
                         className={`w-full p-3 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.password
-                                ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                                : 'border-white/10 focus:border-halloween-orange focus:ring-1 focus:ring-halloween-orange'
+                            ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                            : 'border-white/10 focus:border-halloween-orange focus:ring-1 focus:ring-halloween-orange'
                             }`}
                         placeholder="••••••••"
                     />

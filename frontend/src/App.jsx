@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
 import NoteForm from './components/NoteForm';
@@ -12,6 +12,47 @@ function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState('login');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Memoize random particles to avoid "impure render" errors with Math.random()
+  const particles = useMemo(() => {
+    return [...Array(20)].map(() => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      duration: 5 + Math.random() * 5,
+      delay: Math.random() * 5
+    }));
+  }, []);
+
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setView('login');
+    setNotes([]);
+  }, []);
+
+  const fetchNotes = useCallback(async () => {
+    try {
+      const res = await fetch('/notes', {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotes(data);
+      } else if (res.status === 401) {
+        handleLogout();
+      }
+    } catch (err) {
+      console.error('Failed to fetch notes', err);
+    }
+  }, [getAuthHeaders, handleLogout]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -44,31 +85,7 @@ function App() {
     if (user) {
       fetchNotes();
     }
-  }, [user]);
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    };
-  };
-
-  const fetchNotes = async () => {
-    try {
-      const res = await fetch('/notes', {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setNotes(data);
-      } else if (res.status === 401) {
-        handleLogout();
-      }
-    } catch (err) {
-      console.error('Failed to fetch notes', err);
-    }
-  };
+  }, [user, fetchNotes]);
 
   const addNote = async (note) => {
     try {
@@ -109,13 +126,6 @@ function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     setView('home');
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    setView('login');
-    setNotes([]);
   };
 
   if (isLoading) {
@@ -240,22 +250,22 @@ function App() {
 
       {/* Floating particles background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        {[...Array(20)].map((_, i) => (
+        {particles.map((p, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 bg-halloween-purple/20 rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: `${p.left}%`,
+              top: `${p.top}%`,
             }}
             animate={{
               y: [0, -100, 0],
               opacity: [0, 0.5, 0],
             }}
             transition={{
-              duration: 5 + Math.random() * 5,
+              duration: p.duration,
               repeat: Infinity,
-              delay: Math.random() * 5,
+              delay: p.delay,
               ease: 'easeInOut',
             }}
           />
