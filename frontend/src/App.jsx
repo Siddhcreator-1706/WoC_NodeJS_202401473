@@ -5,7 +5,6 @@ import NoteForm from './components/NoteForm';
 import NoteList from './components/NoteList';
 import Login from './components/Login';
 import Signup from './components/Signup';
-import CustomCursor from './components/CustomCursor';
 
 function App() {
   const [notes, setNotes] = useState([]);
@@ -169,7 +168,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-halloween-darker text-halloween-text font-sans selection:bg-halloween-orange selection:text-white pb-12 cursor-none md:cursor-none">
-      <CustomCursor />
       <Navbar user={user} onViewChange={setView} onLogout={handleLogout} />
 
       <main className="max-w-4xl mx-auto pt-24 px-6">

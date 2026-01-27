@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Session = require('../models/Session');
 
-// Protect routes - verify JWT token
+// Protect routes - verify JWT token and session
 const protect = async (req, res, next) => {
     let token;
 
@@ -24,6 +25,20 @@ const protect = async (req, res, next) => {
                 return res.status(401).json({ error: 'Invalid token payload' });
             }
 
+            // Check if session exists and is active
+            const session = await Session.findOne({
+                token,
+                isActive: true,
+                expiresAt: { $gt: new Date() }
+            });
+
+            if (!session) {
+                return res.status(401).json({ error: 'Session expired or invalid. Please log in again.' });
+            }
+
+            // Update session activity
+            await Session.updateActivity(token);
+
             // Get user from token (exclude password)
             const user = await User.findById(decoded.id);
 
@@ -31,16 +46,9 @@ const protect = async (req, res, next) => {
                 return res.status(401).json({ error: 'User no longer exists' });
             }
 
-            // Check if user changed password after token was issued
-            if (user.passwordChangedAt) {
-                const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
-                if (decoded.iat < changedTimestamp) {
-                    return res.status(401).json({ error: 'Password recently changed. Please log in again.' });
-                }
-            }
-
-            // Attach user to request
+            // Attach user and session to request
             req.user = user;
+            req.session = session;
             next();
         } catch (error) {
             console.error('Auth error:', error.message);
@@ -80,7 +88,18 @@ const optionalAuth = async (req, res, next) => {
             const token = req.headers.authorization.split(' ')[1];
             if (token && token !== 'null' && token !== 'undefined') {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                req.user = await User.findById(decoded.id);
+
+                // Check session validity
+                const session = await Session.findOne({
+                    token,
+                    isActive: true,
+                    expiresAt: { $gt: new Date() }
+                });
+
+                if (session) {
+                    req.user = await User.findById(decoded.id);
+                    req.session = session;
+                }
             }
         } catch (error) {
             // Token invalid, but we don't fail - just no user attached

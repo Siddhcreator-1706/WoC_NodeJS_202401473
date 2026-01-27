@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Session = require('../models/Session');
 const { protect } = require('../middleware/auth');
 
-// Generate JWT Token
+// Generate JWT Token - Long-lived (100 years), session controls access
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+        expiresIn: '100y' // Token doesn't expire, session management controls access
     });
 };
 
@@ -80,6 +81,9 @@ router.post('/signup', async (req, res) => {
 
         const token = generateToken(user._id);
 
+        // Create session in MongoDB
+        const session = await Session.createSession(user._id, token, req, 365); // 1 year session
+
         res.status(201).json({
             message: 'User created successfully',
             user: {
@@ -88,7 +92,8 @@ router.post('/signup', async (req, res) => {
                 email: user.email,
                 role: user.role
             },
-            token
+            token,
+            sessionId: session._id
         });
     } catch (error) {
         console.error('Signup error:', error);
@@ -157,6 +162,9 @@ router.post('/login', async (req, res) => {
 
         const token = generateToken(user._id);
 
+        // Create session in MongoDB
+        const session = await Session.createSession(user._id, token, req, 365); // 1 year session
+
         res.json({
             message: 'Login successful',
             user: {
@@ -165,11 +173,91 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 role: user.role
             },
-            token
+            token,
+            sessionId: session._id
         });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Server error during login' });
+    }
+});
+
+// @route   POST /auth/logout
+// @desc    Logout user (invalidate session)
+// @access  Private
+router.post('/logout', protect, async (req, res) => {
+    try {
+        const token = req.headers.authorization.split(' ')[1];
+        await Session.invalidateSession(token);
+
+        res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Server error during logout' });
+    }
+});
+
+// @route   POST /auth/logout-all
+// @desc    Logout from all devices (invalidate all sessions)
+// @access  Private
+router.post('/logout-all', protect, async (req, res) => {
+    try {
+        await Session.invalidateAllUserSessions(req.user._id);
+
+        res.json({ message: 'Logged out from all devices successfully' });
+    } catch (error) {
+        console.error('Logout all error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// @route   GET /auth/sessions
+// @desc    Get all active sessions for current user
+// @access  Private
+router.get('/sessions', protect, async (req, res) => {
+    try {
+        const sessions = await Session.getActiveSessions(req.user._id);
+
+        const sessionList = sessions.map(session => ({
+            id: session._id,
+            userAgent: session.userAgent,
+            ipAddress: session.ipAddress,
+            lastActivity: session.lastActivity,
+            createdAt: session.createdAt,
+            isCurrent: session.token === req.headers.authorization.split(' ')[1]
+        }));
+
+        res.json({ sessions: sessionList });
+    } catch (error) {
+        console.error('Get sessions error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// @route   DELETE /auth/sessions/:id
+// @desc    Revoke a specific session
+// @access  Private
+router.delete('/sessions/:id', protect, async (req, res) => {
+    try {
+        const session = await Session.findOne({
+            _id: req.params.id,
+            userId: req.user._id
+        });
+
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        session.isActive = false;
+        await session.save();
+
+        res.json({ message: 'Session revoked successfully' });
+    } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(400).json({ error: 'Invalid session ID' });
+        }
+        console.error('Delete session error:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
@@ -226,12 +314,15 @@ router.put('/password', protect, async (req, res) => {
         user.password = newPassword;
         await user.save();
 
-        // Generate new token since password changed
-        const token = generateToken(user._id);
+        // Invalidate all other sessions after password change
+        const currentToken = req.headers.authorization.split(' ')[1];
+        await Session.updateMany(
+            { userId: req.user._id, token: { $ne: currentToken } },
+            { $set: { isActive: false } }
+        );
 
         res.json({
-            message: 'Password updated successfully',
-            token // Return new token
+            message: 'Password updated successfully. Other sessions have been logged out.'
         });
     } catch (error) {
         console.error('Password change error:', error);
