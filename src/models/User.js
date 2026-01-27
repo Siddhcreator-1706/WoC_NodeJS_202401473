@@ -16,8 +16,7 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Email is required'],
         unique: true,
         trim: true,
-        lowercase: true,
-        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email']
+        lowercase: true
     },
     password: {
         type: String,
@@ -70,10 +69,10 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_TIME = 15 * 60 * 1000; // 15 minutes
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
     // Only hash if password is modified
     if (!this.isModified('password')) {
-        return next();
+        return;
     }
 
     // Hash password with bcrypt (cost factor 12 for better security)
@@ -84,8 +83,6 @@ userSchema.pre('save', async function (next) {
     if (!this.isNew) {
         this.passwordChangedAt = Date.now() - 1000; // Subtract 1 sec to ensure token is issued after
     }
-
-    next();
 });
 
 // Method to compare passwords

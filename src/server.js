@@ -82,9 +82,8 @@ const sanitizeInput = (obj) => {
         delete obj[key];
       } else if (typeof obj[key] === 'object') {
         sanitizeInput(obj[key]);
-      } else if (typeof obj[key] === 'string') {
-        // Remove NoSQL operators from string values
-        obj[key] = obj[key].replace(/\$|\./g, '');
+        // Modify: Only remove $ from string values, allow . (dots)
+        obj[key] = obj[key].replace(/\$/g, '');
       }
     }
   }

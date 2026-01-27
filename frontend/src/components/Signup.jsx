@@ -32,8 +32,13 @@ const Signup = ({ onSignup, switchToLogin }) => {
 
     const validateEmail = (value) => {
         if (!value) return 'Email is required';
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) return 'Please enter a valid email address';
+        // Simple but effective validation
+        const parts = value.split('@');
+        if (parts.length !== 2) return 'Please enter a valid email address';
+        const [local, domain] = parts;
+        if (local.length === 0 || !domain.includes('.') || domain.split('.').pop().length < 2) {
+            return 'Please enter a valid email address';
+        }
         return '';
     };
 

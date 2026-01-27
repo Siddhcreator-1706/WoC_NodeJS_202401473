@@ -14,8 +14,12 @@ const generateToken = (id) => {
 
 // Validate email format
 const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (!email || typeof email !== 'string') return false;
+    // Simple but effective validation: has @, has . after @, and proper structure
+    const parts = email.split('@');
+    if (parts.length !== 2) return false;
+    const [local, domain] = parts;
+    return local.length > 0 && domain.includes('.') && domain.split('.').pop().length >= 2;
 };
 
 // Validate password strength
@@ -108,6 +112,8 @@ router.post('/signup', async (req, res) => {
             return res.status(409).json({ error: `${field} already exists` });
         }
 
+        // DEBUG: Return actual error
+        // return res.status(500).json({ error: error.message, stack: error.stack });
         res.status(500).json({ error: 'Server error during registration' });
     }
 });
