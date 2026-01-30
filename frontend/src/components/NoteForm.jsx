@@ -1,12 +1,23 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
 
-const NoteForm = ({ onAdd }) => {
+const NoteForm = ({ onAdd, onUpdate, editingNote, onCancelEdit }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [isExpanded, setIsExpanded] = useState(false);
     const formRef = useRef(null);
+
+    // Populate form when editingNote changes
+    useEffect(() => {
+        if (editingNote) {
+            setTitle(editingNote.title);
+            setContent(editingNote.content);
+            setIsExpanded(true);
+            // Scroll to form
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [editingNote]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -28,10 +39,24 @@ const NoteForm = ({ onAdd }) => {
             ease: 'power2.out'
         });
 
-        onAdd({ title: title.trim(), content: content.trim() });
+        if (editingNote) {
+            onUpdate(editingNote.id, { title: title.trim(), content: content.trim() });
+        } else {
+            onAdd({ title: title.trim(), content: content.trim() });
+        }
+
+        if (!editingNote) {
+            setTitle('');
+            setContent('');
+            setIsExpanded(false);
+        }
+    };
+
+    const handleCancel = () => {
         setTitle('');
         setContent('');
         setIsExpanded(false);
+        onCancelEdit();
     };
 
     return (
@@ -63,9 +88,9 @@ const NoteForm = ({ onAdd }) => {
                     animate={{ rotate: isExpanded ? 360 : 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    ✍️
+                    {editingNote ? '✏️' : '✍️'}
                 </motion.span>
-                Inscribe a Secret
+                {editingNote ? 'Rewrite History' : 'Inscribe a Secret'}
             </motion.h3>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -104,31 +129,48 @@ const NoteForm = ({ onAdd }) => {
                     />
                 </motion.div>
 
-                <motion.button
-                    type="submit"
-                    className="w-full py-4 px-6 bg-gradient-to-r from-halloween-purple-dim to-halloween-purple text-white font-bold rounded-xl shadow-lg shadow-halloween-purple/20"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    whileHover={{
-                        scale: 1.02,
-                        boxShadow: '0 0 40px rgba(176, 38, 255, 0.4)'
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                >
-                    <span className="flex items-center justify-center gap-2">
-                        <motion.span
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                <div className="flex gap-4">
+                    <motion.button
+                        type="submit"
+                        className="flex-1 py-4 px-6 bg-gradient-to-r from-halloween-purple-dim to-halloween-purple text-white font-bold rounded-xl shadow-lg shadow-halloween-purple/20"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        whileHover={{
+                            scale: 1.02,
+                            boxShadow: '0 0 40px rgba(176, 38, 255, 0.4)'
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                    >
+                        <span className="flex items-center justify-center gap-2">
+                            <motion.span
+                                animate={{ rotate: [0, 10, -10, 0] }}
+                                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                            >
+                                📜
+                            </motion.span>
+                            {editingNote ? 'Update Secret' : 'Seal in the Grimoire'}
+                        </span>
+                    </motion.button>
+
+                    {editingNote && (
+                        <motion.button
+                            type="button"
+                            onClick={handleCancel}
+                            className="px-6 py-4 bg-gray-700/50 text-gray-300 font-bold rounded-xl hover:bg-gray-700/80 transition-colors"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                         >
-                            📜
-                        </motion.span>
-                        Seal in the Grimoire
-                    </span>
-                </motion.button>
+                            Cancel
+                        </motion.button>
+                    )}
+                </div>
             </form>
         </motion.div>
     );
 };
+
 
 export default NoteForm;

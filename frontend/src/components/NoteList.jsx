@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 
-const NoteList = ({ notes, onDelete, isAdmin }) => {
+const NoteList = ({ notes, onDelete, onEdit }) => {
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -57,19 +57,29 @@ const NoteList = ({ notes, onDelete, isAdmin }) => {
                             className="absolute inset-0 bg-gradient-to-br from-halloween-purple/5 to-halloween-orange/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                         />
 
-                        {/* Only show delete button for admins */}
-                        {isAdmin && (
+                        {/* Show delete/edit buttons for owners only */}
+                        {note.isOwner && (
                             <motion.div
-                                className="absolute top-0 right-0 p-6 z-10"
+                                className="absolute top-0 right-0 p-6 z-20 flex gap-3"
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 whileHover={{ scale: 1.1 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.2 }}
                             >
                                 <motion.button
+                                    onClick={() => onEdit(note)}
+                                    className="text-gray-500 hover:text-halloween-purple transition-colors"
+                                    title="Rewrite Secret"
+                                    whileHover={{ scale: 1.2, rotate: -10 }}
+                                    whileTap={{ scale: 0.9 }}
+                                >
+                                    <span className="text-lg">✏️</span>
+                                </motion.button>
+
+                                <motion.button
                                     onClick={() => onDelete(note.id)}
                                     className="text-gray-500 hover:text-red-400 transition-colors"
-                                    title="Banish Note (Admin Only)"
+                                    title="Banish Note"
                                     whileHover={{ scale: 1.2, rotate: 10 }}
                                     whileTap={{ scale: 0.9 }}
                                 >

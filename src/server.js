@@ -8,7 +8,6 @@ require('dotenv').config();
 const connectDB = require('./config/db');
 const notesRouter = require('./routes/notes');
 const authRouter = require('./routes/auth');
-const adminRouter = require('./routes/admin');
 const logger = require('./middleware/logger');
 
 const PORT = process.env.PORT || 3000;
@@ -135,7 +134,6 @@ app.get('/test', (req, res) => {
 
 app.use('/auth', authLimiter, authRouter);
 app.use('/notes', notesRouter);
-app.use('/admin', adminRouter);
 
 // Serve frontend for all other routes
 app.use((req, res) => {

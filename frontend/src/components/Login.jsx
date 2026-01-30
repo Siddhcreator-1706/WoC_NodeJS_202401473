@@ -118,7 +118,7 @@ const Login = ({ onLogin, switchToSignup }) => {
     return (
         <div
             ref={formRef}
-            className="max-w-md mx-auto mt-24 p-8 bg-halloween-card/60 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.6)] border border-white/10 relative overflow-hidden group"
+            className="w-full p-8 bg-halloween-card/60 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.6)] border border-white/10 relative overflow-hidden group"
         >
             <motion.div
                 className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-halloween-orange to-halloween-purple"
@@ -227,8 +227,8 @@ const Login = ({ onLogin, switchToSignup }) => {
                     className="w-full py-3.5 px-4 bg-gradient-to-r from-halloween-orange-dim to-halloween-orange text-white font-bold rounded-xl transition-all shadow-lg shadow-halloween-orange/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    whileHover={{ scale: 1.02, boxShadow: '0 0 30px rgba(255, 107, 0, 0.4)' }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    whileHover={{ boxShadow: '0 0 30px rgba(255, 107, 0, 0.4)' }}
                     whileTap={{ scale: 0.98 }}
                 >
                     {isLoading ? (

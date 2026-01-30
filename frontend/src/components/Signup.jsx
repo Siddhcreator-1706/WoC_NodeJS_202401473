@@ -156,7 +156,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
     return (
         <div
             ref={formRef}
-            className="max-w-md mx-auto mt-24 p-8 bg-halloween-card/60 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.6)] border border-white/10 relative overflow-hidden group"
+            className="w-full p-8 bg-halloween-card/60 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.6)] border border-white/10 relative overflow-hidden group"
         >
             <motion.div
                 className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-halloween-purple to-halloween-orange"
@@ -174,7 +174,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                 Join the Coven
             </motion.h2>
             <motion.p
-                className="text-center text-gray-400 mb-8 text-sm"
+                className="text-center text-gray-400 mb-6 text-sm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
@@ -186,7 +186,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="bg-red-900/40 text-red-200 p-3 rounded-lg mb-6 text-sm border-l-4 border-red-500"
+                    className="bg-red-900/40 text-red-200 p-2.5 rounded-lg mb-6 text-sm border-l-4 border-red-500"
                 >
                     ⚠️ {serverError}
                 </motion.div>
@@ -196,13 +196,13 @@ const Signup = ({ onSignup, switchToLogin }) => {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-green-900/40 text-green-200 p-3 rounded-lg mb-6 text-sm border-l-4 border-green-500"
+                    className="bg-green-900/40 text-green-200 p-2.5 rounded-lg mb-6 text-sm border-l-4 border-green-500"
                 >
                     ✨ {success}
                 </motion.div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Username */}
                 <motion.div
                     className="space-y-1"
@@ -220,7 +220,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                         onBlur={() => handleBlur('username')}
                         variants={inputVariants}
                         whileFocus="focus"
-                        className={`w-full p-3 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.username ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
+                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.username ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
                             }`}
                         placeholder="e.g. GhostWhisperer"
                     />
@@ -246,7 +246,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                         onBlur={() => handleBlur('email')}
                         variants={inputVariants}
                         whileFocus="focus"
-                        className={`w-full p-3 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.email ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
+                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.email ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
                             }`}
                         placeholder="e.g. ghost@coven.com"
                     />
@@ -272,7 +272,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                         onBlur={() => handleBlur('password')}
                         variants={inputVariants}
                         whileFocus="focus"
-                        className={`w-full p-3 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.password ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
+                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.password ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
                             }`}
                         placeholder="••••••••"
                     />
@@ -316,7 +316,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                         onBlur={() => handleBlur('confirmPassword')}
                         variants={inputVariants}
                         whileFocus="focus"
-                        className={`w-full p-3 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.confirmPassword ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
+                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.confirmPassword ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
                             }`}
                         placeholder="••••••••"
                     />
@@ -331,8 +331,8 @@ const Signup = ({ onSignup, switchToLogin }) => {
                     className="w-full py-3.5 px-4 bg-gradient-to-r from-halloween-purple-dim to-halloween-purple text-white font-bold rounded-xl transition-all shadow-lg shadow-halloween-purple/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.6 }}
-                    whileHover={{ scale: 1.02, boxShadow: '0 0 30px rgba(176, 38, 255, 0.4)' }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    whileHover={{ boxShadow: '0 0 30px rgba(176, 38, 255, 0.4)' }}
                     whileTap={{ scale: 0.98 }}
                 >
                     {isLoading ? (
@@ -355,7 +355,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
             </form>
 
             <motion.p
-                className="mt-8 text-center text-gray-500 text-sm"
+                className="mt-6 text-center text-gray-500 text-sm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.7 }}

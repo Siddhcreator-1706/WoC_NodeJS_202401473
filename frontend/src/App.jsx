@@ -15,6 +15,7 @@ function App() {
   // Memoize random particles to avoid "impure render" errors with Math.random()
   // Move random particle generation to useEffect to avoid "impure render" errors
   const [particles, setParticles] = useState([]);
+  const [editingNote, setEditingNote] = useState(null);
 
   useEffect(() => {
     setParticles([...Array(20)].map(() => ({
@@ -38,6 +39,7 @@ function App() {
     setUser(null);
     setView('login');
     setNotes([]);
+    setEditingNote(null);
   }, []);
 
   const fetchNotes = useCallback(async () => {
@@ -107,6 +109,24 @@ function App() {
     }
   };
 
+  const updateNote = async (id, updatedNote) => {
+    try {
+      const res = await fetch(`/notes/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updatedNote),
+      });
+      if (res.ok) {
+        fetchNotes();
+        setEditingNote(null);
+      } else if (res.status === 401) {
+        handleLogout();
+      }
+    } catch (err) {
+      console.error('Failed to update note', err);
+    }
+  };
+
   const deleteNote = async (id) => {
     if (!confirm('Banish this note to the nether realm?')) return;
     try {
@@ -116,8 +136,9 @@ function App() {
       });
       if (res.ok) {
         fetchNotes();
-      } else if (res.status === 403) {
-        alert('Only admins can delete notes!');
+        if (editingNote && editingNote.id === id) {
+          setEditingNote(null);
+        }
       } else if (res.status === 401) {
         handleLogout();
       }
@@ -167,15 +188,16 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-halloween-darker text-halloween-text font-sans selection:bg-halloween-orange selection:text-white pb-12 cursor-none md:cursor-none">
-      <Navbar user={user} onViewChange={setView} onLogout={handleLogout} />
+    <div className={`${!user ? 'min-h-screen w-full flex flex-col' : 'min-h-screen pb-12'} bg-halloween-darker text-halloween-text font-sans selection:bg-halloween-orange selection:text-white overflow-x-hidden`}>
+      <Navbar user={user} onViewChange={setView} onLogout={handleLogout} currentView={view} />
 
-      <main className="max-w-4xl mx-auto pt-24 px-6">
+      <main className={!user ? 'flex-grow flex items-center justify-center p-4 pt-24 relative z-10' : 'max-w-4xl mx-auto pt-24 px-6 relative z-10'}>
         <AnimatePresence mode="wait">
           {!user ? (
             view === 'login' ? (
               <motion.div
                 key="login"
+                className="w-full max-w-md"
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
@@ -186,6 +208,7 @@ function App() {
             ) : (
               <motion.div
                 key="signup"
+                className="w-full max-w-md"
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -50 }}
@@ -229,21 +252,21 @@ function App() {
                 >
                   Secrets documented: {notes.length}
                 </motion.p>
-                {user.role === 'admin' && (
-                  <motion.span
-                    className="inline-block mt-2 px-3 py-1 bg-halloween-purple/20 text-halloween-purple text-sm rounded-full border border-halloween-purple/30"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 200, delay: 0.5 }}
-                  >
-                    👑 Admin
-                  </motion.span>
-                )}
+                {/* Admin badge removed as requested */}
               </motion.header>
 
-              <NoteForm onAdd={addNote} />
+              <NoteForm
+                onAdd={addNote}
+                onUpdate={updateNote}
+                editingNote={editingNote}
+                onCancelEdit={() => setEditingNote(null)}
+              />
               <div className="mt-12">
-                <NoteList notes={notes} onDelete={deleteNote} isAdmin={user.role === 'admin'} />
+                <NoteList
+                  notes={notes}
+                  onDelete={deleteNote}
+                  onEdit={setEditingNote}
+                />
               </div>
             </motion.div>
           )}

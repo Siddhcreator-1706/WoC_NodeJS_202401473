@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, isAdmin } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const Note = require('../models/Note');
 
 // All notes routes require authentication
@@ -118,11 +118,10 @@ router.put('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Note not found' });
         }
 
-        // Only owner or admin can update
+        // Only owner can update
         const isOwner = note.createdBy?.toString() === req.user._id.toString();
-        const isUserAdmin = req.user.role === 'admin';
 
-        if (!isOwner && !isUserAdmin) {
+        if (!isOwner) {
             return res.status(403).json({ error: 'Not authorized to update this note' });
         }
 
@@ -168,14 +167,23 @@ router.put('/:id', async (req, res) => {
 
 // @route   DELETE /notes/:id
 // @desc    Delete a note
-// @access  Private (Admin only)
-router.delete('/:id', isAdmin, async (req, res) => {
+// @access  Private (Owner or Admin)
+router.delete('/:id', async (req, res) => {
     try {
-        const note = await Note.findByIdAndDelete(req.params.id);
+        const note = await Note.findById(req.params.id);
 
         if (!note) {
             return res.status(404).json({ error: 'Note not found' });
         }
+
+        // Check if user is owner
+        const isOwner = note.createdBy?.toString() === req.user._id.toString();
+
+        if (!isOwner) {
+            return res.status(403).json({ error: 'Not authorized to delete this note' });
+        }
+
+        await note.deleteOne();
 
         res.status(204).send();
     } catch (error) {
