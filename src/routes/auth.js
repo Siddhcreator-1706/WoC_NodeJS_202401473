@@ -34,6 +34,9 @@ const isValidPassword = (password) => {
 // @route   POST /auth/signup
 // @desc    Register a new user
 // @access  Public
+// @route   POST /auth/signup
+// @desc    Register a new user
+// @access  Public
 router.post('/signup', async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -75,30 +78,50 @@ router.post('/signup', async (req, res) => {
             return res.status(409).json({ error: 'Username already taken' });
         }
 
-        // Create user with 'user' role (admin must be assigned manually)
+        // Generate verification token
+        const crypto = require('crypto');
+        const verificationToken = crypto.randomBytes(20).toString('hex');
+        const verificationTokenHash = crypto
+            .createHash('sha256')
+            .update(verificationToken)
+            .digest('hex');
+
+        // Create user
         const user = await User.create({
             username,
             email: email.toLowerCase(),
             password,
-            role: 'user'
+            role: 'user',
+            verificationToken: verificationTokenHash,
+            verificationTokenExpire: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+            isVerified: false
         });
 
-        const token = generateToken(user._id);
+        // Create verification URL
+        const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify/${verificationToken}`;
 
-        // Create session in MongoDB
-        const session = await Session.createSession(user._id, token, req, 365); // 1 year session
-
-        res.status(201).json({
-            message: 'User created successfully',
-            user: {
-                id: user._id,
-                username: user.username,
+        // Send email
+        const sendEmail = require('../utils/sendEmail');
+        try {
+            await sendEmail({
                 email: user.email,
-                role: user.role
-            },
-            token,
-            sessionId: session._id
-        });
+                subject: 'Email Verification',
+                message: `Please verify your email by clicking the following link: ${verifyUrl}`,
+                html: `<h1>Email Verification</h1>
+                       <p>Please verify your email by clicking the following link:</p>
+                       <a href="${verifyUrl}">${verifyUrl}</a>`
+            });
+
+            res.status(201).json({
+                message: 'User created successfully. Please check your email to verify your account.'
+            });
+        } catch (emailError) {
+            console.error('Email send error:', emailError);
+            // Optionally delete the user if email email fails, or just let them retry
+            // await User.findByIdAndDelete(user._id); 
+            return res.status(500).json({ error: 'User created, but email could not be sent. Please contact support.' });
+        }
+
     } catch (error) {
         console.error('Signup error:', error);
 
@@ -112,9 +135,39 @@ router.post('/signup', async (req, res) => {
             return res.status(409).json({ error: `${field} already exists` });
         }
 
-        // DEBUG: Return actual error
-        // return res.status(500).json({ error: error.message, stack: error.stack });
         res.status(500).json({ error: 'Server error during registration' });
+    }
+});
+
+// @route   GET /auth/verify/:token
+// @desc    Verify email address
+// @access  Public
+router.get('/verify/:token', async (req, res) => {
+    try {
+        const crypto = require('crypto');
+        const verificationTokenHash = crypto
+            .createHash('sha256')
+            .update(req.params.token)
+            .digest('hex');
+
+        const user = await User.findOne({
+            verificationToken: verificationTokenHash,
+            verificationTokenExpire: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: 'Invalid or expired verification token' });
+        }
+
+        user.isVerified = true;
+        user.verificationToken = undefined;
+        user.verificationTokenExpire = undefined;
+        await user.save();
+
+        res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
+    } catch (error) {
+        console.error('Verification error:', error);
+        res.status(500).json({ error: 'Server error during verification' });
     }
 });
 
@@ -139,6 +192,11 @@ router.post('/login', async (req, res) => {
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        // Check if email is verified
+        if (!user.isVerified) {
+            return res.status(401).json({ error: 'Please verify your email address before logging in' });
         }
 
         // Check if account is active
