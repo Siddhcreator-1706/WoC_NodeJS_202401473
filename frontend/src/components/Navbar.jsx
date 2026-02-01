@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Navbar = ({ user, onViewChange, onLogout, currentView }) => {
+const Navbar = ({ user, onViewChange, onLogout, onLogoutAll, currentView }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -17,6 +17,13 @@ const Navbar = ({ user, onViewChange, onLogout, currentView }) => {
     const handleLogout = () => {
         onLogout();
         closeMenu();
+    };
+
+    const handleLogoutAll = () => {
+        if (confirm('Are you sure you want to log out from ALL devices?')) {
+            onLogoutAll();
+            closeMenu();
+        }
     };
 
     // Button styles based on active state
@@ -101,6 +108,15 @@ const Navbar = ({ user, onViewChange, onLogout, currentView }) => {
                                     Welcome, <span className="text-halloween-orange font-bold">{user.username}</span>
                                 </span>
                                 <motion.button
+                                    onClick={handleLogoutAll}
+                                    className="px-4 py-2 rounded-lg border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10 hover:border-yellow-500 transition-all font-medium"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    title="Log out from all devices"
+                                >
+                                    Logout All
+                                </motion.button>
+                                <motion.button
                                     onClick={handleLogout}
                                     className="px-4 py-2 rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500 transition-all font-medium"
                                     whileHover={{ scale: 1.05 }}
@@ -173,6 +189,14 @@ const Navbar = ({ user, onViewChange, onLogout, currentView }) => {
                                     <div className="py-2 text-gray-400">
                                         Signed in as <span className="text-white font-bold">{user.username}</span>
                                     </div>
+                                    <motion.button
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        onClick={handleLogoutAll}
+                                        className="w-full py-3 rounded-xl border border-yellow-500/50 text-yellow-500 bg-yellow-900/20 font-bold mb-2"
+                                    >
+                                        Logout All Devices
+                                    </motion.button>
                                     <motion.button
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}

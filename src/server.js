@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const cookieParser = require('cookie-parser');
 
 const connectDB = require('./config/db');
 const notesRouter = require('./routes/notes');
@@ -69,6 +70,7 @@ app.use(generalLimiter);
 // Body parser with size limit
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(cookieParser());
 
 // Custom NoSQL injection prevention middleware (Express 5 compatible)
 const sanitizeInput = (obj) => {

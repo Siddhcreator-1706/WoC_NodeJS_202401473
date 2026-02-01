@@ -27,19 +27,27 @@ function App() {
   }, []);
 
   const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
     return {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
+      'Content-Type': 'application/json'
     };
   }, []);
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('token');
-    setUser(null);
-    setView('login');
-    setNotes([]);
-    setEditingNote(null);
+  const handleLogout = useCallback(async () => {
+    try {
+      // Call backend to invalidate session
+      await fetch('/auth/logout', {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+    } catch (err) {
+      console.error('Logout failed', err);
+    } finally {
+      // Clear local state regardless of server success
+      setUser(null);
+      setView('login');
+      setNotes([]);
+      setEditingNote(null);
+    }
   }, []);
 
   const fetchNotes = useCallback(async () => {
@@ -58,27 +66,34 @@ function App() {
     }
   }, [getAuthHeaders, handleLogout]);
 
+  const handleLogoutAll = useCallback(async () => {
+    try {
+      await fetch('/auth/logout-all', {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      alert('Logged out from all devices successfully.');
+    } catch (err) {
+      console.error('Logout all failed', err);
+    } finally {
+      handleLogout(); // Perform local logout as well
+    }
+  }, [handleLogout, getAuthHeaders]);
+
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const res = await fetch('/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setUser({ ...data.user, token });
-            setView('home');
-          } else {
-            localStorage.removeItem('token');
-          }
-        } catch (err) {
-          console.error('Auth check failed', err);
-          localStorage.removeItem('token');
+      // We no longer check for token in localStorage. We just try to hit /auth/me
+      try {
+        const res = await fetch('/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          setView('home');
+        } else {
+          // Not logged in or session expired
         }
+      } catch (err) {
+        console.error('Auth check failed', err);
       }
       setIsLoading(false);
     };
@@ -189,7 +204,13 @@ function App() {
 
   return (
     <div className={`${!user ? 'min-h-screen w-full flex flex-col' : 'min-h-screen pb-12'} bg-halloween-darker text-halloween-text font-sans selection:bg-halloween-orange selection:text-white overflow-x-hidden`}>
-      <Navbar user={user} onViewChange={setView} onLogout={handleLogout} currentView={view} />
+      <Navbar
+        user={user}
+        onViewChange={setView}
+        onLogout={handleLogout}
+        onLogoutAll={handleLogoutAll}
+        currentView={view}
+      />
 
       <main className={!user ? 'flex-grow flex items-center justify-center p-4 pt-24 relative z-10' : 'max-w-4xl mx-auto pt-24 px-6 relative z-10'}>
         <AnimatePresence mode="wait">
@@ -291,7 +312,7 @@ function App() {
               duration: p.duration,
               repeat: Infinity,
               delay: p.delay,
-              ease: 'easeInOut',
+              ease: 'easeInOut'
             }}
           />
         ))}

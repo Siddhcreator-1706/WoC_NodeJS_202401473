@@ -255,7 +255,15 @@ router.post('/login', async (req, res) => {
         // Create session in MongoDB
         const session = await Session.createSession(user._id, token, req, 365); // 1 year session
 
-        res.json({
+        // Set HttpOnly Cookie
+        const options = {
+            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+            sameSite: 'strict' // Protect against CSRF
+        };
+
+        res.status(200).cookie('token', token, options).json({
             message: 'Login successful',
             user: {
                 id: user._id,
@@ -263,7 +271,7 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 role: user.role
             },
-            token,
+            token, // Keep sending token for now for backward compatibility if needed, or remove it. I will keep it but frontend will ignore.
             sessionId: session._id
         });
     } catch (error) {
@@ -277,10 +285,15 @@ router.post('/login', async (req, res) => {
 // @access  Private
 router.post('/logout', protect, async (req, res) => {
     try {
-        const token = req.headers.authorization.split(' ')[1];
-        await Session.invalidateSession(token);
+        const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+        if (token) {
+            await Session.invalidateSession(token);
+        }
 
-        res.json({ message: 'Logged out successfully' });
+        res.status(200).cookie('token', 'none', {
+            expires: new Date(Date.now() + 10 * 1000),
+            httpOnly: true
+        }).json({ message: 'Logged out successfully' });
     } catch (error) {
         console.error('Logout error:', error);
         res.status(500).json({ error: 'Server error during logout' });
@@ -314,7 +327,7 @@ router.get('/sessions', protect, async (req, res) => {
             ipAddress: session.ipAddress,
             lastActivity: session.lastActivity,
             createdAt: session.createdAt,
-            isCurrent: session.token === req.headers.authorization.split(' ')[1]
+            isCurrent: session.token === (req.cookies.token || req.headers.authorization?.split(' ')[1])
         }));
 
         res.json({ sessions: sessionList });
@@ -405,7 +418,7 @@ router.put('/password', protect, async (req, res) => {
         await user.save();
 
         // Invalidate all other sessions after password change
-        const currentToken = req.headers.authorization.split(' ')[1];
+        const currentToken = req.cookies.token || req.headers.authorization?.split(' ')[1];
         await Session.updateMany(
             { userId: req.user._id, token: { $ne: currentToken } },
             { $set: { isActive: false } }

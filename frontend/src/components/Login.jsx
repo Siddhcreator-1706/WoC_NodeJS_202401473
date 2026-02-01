@@ -90,8 +90,8 @@ const Login = ({ onLogin, switchToSignup }) => {
                     y: -20,
                     duration: 0.3,
                     onComplete: () => {
-                        localStorage.setItem('token', data.token);
-                        onLogin({ ...data.user, token: data.token });
+                        // Token is now in cookie, no need to save to localStorage
+                        onLogin({ ...data.user });
                     }
                 });
             } else {

@@ -6,14 +6,17 @@ const Session = require('../models/Session');
 const protect = async (req, res, next) => {
     let token;
 
-    // Check for token in Authorization header
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            // Get token from header
-            token = req.headers.authorization.split(' ')[1];
+    // Check for token in Authorization header or Cookie
+    if (req.cookies.token) {
+        token = req.cookies.token;
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
 
+    if (token) {
+        try {
             // Validate token format
-            if (!token || token === 'null' || token === 'undefined') {
+            if (token === 'null' || token === 'undefined') {
                 return res.status(401).json({ error: 'Invalid token format' });
             }
 
@@ -83,10 +86,16 @@ const isAdmin = (req, res, next) => {
 
 // Optional auth - doesn't fail if no token, but attaches user if valid
 const optionalAuth = async (req, res, next) => {
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    let token;
+    if (req.cookies.token) {
+        token = req.cookies.token;
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (token) {
         try {
-            const token = req.headers.authorization.split(' ')[1];
-            if (token && token !== 'null' && token !== 'undefined') {
+            if (token !== 'null' && token !== 'undefined') {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
                 // Check session validity
