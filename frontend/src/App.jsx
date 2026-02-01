@@ -104,10 +104,9 @@ function App() {
     if (user) {
       fetchNotes();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, fetchNotes]);
 
-  const addNote = async (note) => {
+  const addNote = useCallback(async (note) => {
     try {
       const res = await fetch('/notes', {
         method: 'POST',
@@ -122,9 +121,9 @@ function App() {
     } catch (err) {
       console.error('Failed to add note', err);
     }
-  };
+  }, [fetchNotes, getAuthHeaders, handleLogout]);
 
-  const updateNote = async (id, updatedNote) => {
+  const updateNote = useCallback(async (id, updatedNote) => {
     try {
       const res = await fetch(`/notes/${id}`, {
         method: 'PUT',
@@ -140,9 +139,9 @@ function App() {
     } catch (err) {
       console.error('Failed to update note', err);
     }
-  };
+  }, [fetchNotes, getAuthHeaders, handleLogout]);
 
-  const deleteNote = async (id) => {
+  const deleteNote = useCallback(async (id) => {
     if (!confirm('Banish this note to the nether realm?')) return;
     try {
       const res = await fetch(`/notes/${id}`, {
@@ -151,16 +150,18 @@ function App() {
       });
       if (res.ok) {
         fetchNotes();
-        if (editingNote && editingNote.id === id) {
-          setEditingNote(null);
-        }
+        // Since we are using an ID, we need to access current editingNote state?
+        // But editingNote is in state.
+        // We can't access state in useCallback unless it's in deps.
+        // But better is to just check id.
+        setEditingNote((prev) => (prev && prev.id === id ? null : prev));
       } else if (res.status === 401) {
         handleLogout();
       }
     } catch (err) {
       console.error('Failed to delete note', err);
     }
-  };
+  }, [fetchNotes, getAuthHeaders, handleLogout]);
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -277,6 +278,7 @@ function App() {
               </motion.header>
 
               <NoteForm
+                key={editingNote ? editingNote.id : 'new'}
                 onAdd={addNote}
                 onUpdate={updateNote}
                 editingNote={editingNote}

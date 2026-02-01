@@ -3,21 +3,17 @@ import { motion } from 'framer-motion';
 import gsap from 'gsap';
 
 const NoteForm = ({ onAdd, onUpdate, editingNote, onCancelEdit }) => {
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [title, setTitle] = useState(editingNote?.title || '');
+    const [content, setContent] = useState(editingNote?.content || '');
+    const [isExpanded, setIsExpanded] = useState(!!editingNote);
     const formRef = useRef(null);
 
-    // Populate form when editingNote changes
+    // Effect for entrance animation and scrolling
     useEffect(() => {
         if (editingNote) {
-            setTitle(editingNote.title);
-            setContent(editingNote.content);
-            setIsExpanded(true);
-            // Scroll to form
             formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, [editingNote]);
+    }, [editingNote]); // Run when editingNote changes (or on mount given the key strategy)
 
     const handleSubmit = (e) => {
         e.preventDefault();
