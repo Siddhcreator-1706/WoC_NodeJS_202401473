@@ -122,25 +122,31 @@ app.use((req, res, next) => {
 // Logger
 app.use(logger);
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// ===================
+// ROUTES
+// ===================
 
 // Test endpoint
 app.get('/test', (req, res) => {
   res.json({ message: 'Express server is working!', status: 'success' });
 });
 
-// ===================
-// ROUTES
-// ===================
-
 app.use('/auth', authLimiter, authRouter);
 app.use('/notes', notesRouter);
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Serve frontend for all other routes
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
-});
+  // Serve frontend for all other routes
+  app.use((req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+  });
+} else {
+  // In Vercel, we only handle API routes. 
+  // If a request reaches here and hasn't been handled by routers, it's a 404 for the API.
+  app.get('/', (req, res) => {
+    res.send('API is running');
+  });
+}
 
 // ===================
 // ERROR HANDLING

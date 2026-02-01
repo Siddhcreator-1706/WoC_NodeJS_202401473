@@ -3,19 +3,19 @@
     "rewrites": [
         {
             "source": "/auth/(.*)",
-            "destination": "/src/server.js"
+            "destination": "/api/index"
         },
         {
             "source": "/notes/(.*)",
-            "destination": "/src/server.js"
+            "destination": "/api/index"
         },
         {
             "source": "/notes",
-            "destination": "/src/server.js"
+            "destination": "/api/index"
         },
         {
             "source": "/test",
-            "destination": "/src/server.js"
+            "destination": "/api/index"
         },
         {
             "source": "/(.*)",
