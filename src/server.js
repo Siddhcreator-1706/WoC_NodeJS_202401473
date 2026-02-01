@@ -158,8 +158,9 @@ app.use((err, req, res, next) => {
   const isDev = process.env.NODE_ENV === 'development';
 
   res.status(err.status || 500).json({
-    error: isDev ? err.message : 'Something went wrong',
-    ...(isDev && { stack: err.stack })
+    error: err.message, // Temporarily show message in production for debugging
+    stack: err.stack, // Temporarily show stack in production
+    details: err // Show full error object
   });
 });
 
