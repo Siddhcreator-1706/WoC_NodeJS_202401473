@@ -21,6 +21,10 @@ const noteSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: null
+    },
+    userEmail: {
+        type: String,
+        required: false // Optional for backward compatibility, but populated for new notes
     }
 }, {
     timestamps: { createdAt: true, updatedAt: false } // We manage updatedAt manually

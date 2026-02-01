@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 
 const Signup = ({ onSignup, switchToLogin }) => {
+    const [step, setStep] = useState('signup'); // 'signup' or 'verify'
+    const [otp, setOtp] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -32,7 +34,6 @@ const Signup = ({ onSignup, switchToLogin }) => {
 
     const validateEmail = (value) => {
         if (!value) return 'Email is required';
-        // Simple but effective validation
         const parts = value.split('@');
         if (parts.length !== 2) return 'Please enter a valid email address';
         const [local, domain] = parts;
@@ -73,61 +74,118 @@ const Signup = ({ onSignup, switchToLogin }) => {
         setServerError('');
         setSuccess('');
 
-        const newErrors = {
-            username: validateUsername(username),
-            email: validateEmail(email),
-            password: validatePassword(password),
-            confirmPassword: validateConfirmPassword(confirmPassword),
-        };
+        if (step === 'signup') {
+            const newErrors = {
+                username: validateUsername(username),
+                email: validateEmail(email),
+                password: validatePassword(password),
+                confirmPassword: validateConfirmPassword(confirmPassword),
+            };
 
-        setErrors(newErrors);
+            setErrors(newErrors);
 
-        if (Object.values(newErrors).some(error => error)) {
-            gsap.to(formRef.current, {
-                x: [-10, 10, -10, 10, 0],
-                duration: 0.4,
-                ease: 'power2.out'
-            });
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            const res = await fetch('/auth/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, password }),
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                setSuccess('Account created! Logging you in...');
-                localStorage.setItem('token', data.token);
-
-                gsap.to(formRef.current, {
-                    scale: 0.95,
-                    opacity: 0,
-                    y: -20,
-                    duration: 0.5,
-                    delay: 0.5,
-                    onComplete: () => {
-                        onSignup({ ...data.user, token: data.token });
-                    }
-                });
-            } else {
-                setServerError(data.error || 'Signup failed');
+            if (Object.values(newErrors).some(error => error)) {
                 gsap.to(formRef.current, {
                     x: [-10, 10, -10, 10, 0],
                     duration: 0.4,
                     ease: 'power2.out'
                 });
+                return;
             }
-        } catch {
-            setServerError('Something went wrong. Try again.');
-        } finally {
-            setIsLoading(false);
+
+            setIsLoading(true);
+
+            try {
+                const res = await fetch('/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password }),
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    setSuccess(data.message || 'Verification code sent!');
+                    setStep('verify');
+                } else {
+                    setServerError(data.error || 'Signup failed');
+                    gsap.to(formRef.current, {
+                        x: [-10, 10, -10, 10, 0],
+                        duration: 0.4,
+                        ease: 'power2.out'
+                    });
+                }
+            } catch {
+                setServerError('Something went wrong. Try again.');
+            } finally {
+                setIsLoading(false);
+            }
+        } else if (step === 'verify') {
+            if (!otp || otp.length !== 6) {
+                setErrors({ otp: 'Please enter a valid 6-digit code' });
+                return;
+            }
+
+            setIsLoading(true);
+
+            try {
+                const res = await fetch('/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp }),
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Automatically log in after verification (if backend returned token, but current verify-otp doesn't return token)
+                    // Since verify-otp just creates the user, we might need to login or ask user to login.
+                    // Implementation plan said: "Login user (store token)". 
+                    // However, the current /verify-otp route I wrote just creates the user. 
+                    // To auto-login, I'd need to call /auth/login right here.
+
+                    setSuccess('Account verified! Logging in...');
+
+                    // Call Login immediately
+                    const loginRes = await fetch('/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password }),
+                    });
+
+                    const loginData = await loginRes.json();
+
+                    if (loginRes.ok) {
+                        localStorage.setItem('token', loginData.token);
+                        gsap.to(formRef.current, {
+                            scale: 0.95,
+                            opacity: 0,
+                            y: -20,
+                            duration: 0.5,
+                            delay: 0.5,
+                            onComplete: () => {
+                                onSignup({ ...loginData.user, token: loginData.token });
+                            }
+                        });
+                    } else {
+                        // Fallback if auto-login fails
+                        setSuccess('Account verified! Please log in.');
+                        setTimeout(() => switchToLogin(), 1500);
+                    }
+
+                } else {
+                    setServerError(data.error || 'Verification failed');
+                    gsap.to(formRef.current, {
+                        x: [-10, 10, -10, 10, 0],
+                        duration: 0.4,
+                        ease: 'power2.out'
+                    });
+                }
+            } catch {
+                setServerError('Something went wrong. Try again.');
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
@@ -171,7 +229,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
             >
-                Join the Coven
+                {step === 'signup' ? 'Join the Coven' : 'Verify Magic'}
             </motion.h2>
             <motion.p
                 className="text-center text-gray-400 mb-6 text-sm"
@@ -179,7 +237,7 @@ const Signup = ({ onSignup, switchToLogin }) => {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
             >
-                Eternal life awaits...
+                {step === 'signup' ? 'Eternal life awaits...' : `Enter the spell code sent to ${email}`}
             </motion.p>
 
             {serverError && (
@@ -203,135 +261,145 @@ const Signup = ({ onSignup, switchToLogin }) => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Username */}
-                <motion.div
-                    className="space-y-1"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                        Username <span className="text-red-400">*</span>
-                    </label>
-                    <motion.input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        onBlur={() => handleBlur('username')}
-                        variants={inputVariants}
-                        whileFocus="focus"
-                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.username ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
-                            }`}
-                        placeholder="e.g. GhostWhisperer"
-                    />
-                    {errors.username && (
-                        <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-xs mt-1 ml-1">{errors.username}</motion.p>
-                    )}
-                </motion.div>
+                <AnimatePresence mode="wait">
+                    {step === 'signup' ? (
+                        <motion.div
+                            key="signup-fields"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="space-y-4"
+                        >
+                            {/* Username */}
+                            <motion.div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                                    Username <span className="text-red-400">*</span>
+                                </label>
+                                <motion.input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    onBlur={() => handleBlur('username')}
+                                    variants={inputVariants}
+                                    whileFocus="focus"
+                                    className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.username ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'}`}
+                                    placeholder="e.g. GhostWhisperer"
+                                />
+                                {errors.username && <p className="text-red-400 text-xs mt-1 ml-1">{errors.username}</p>}
+                            </motion.div>
 
-                {/* Email */}
-                <motion.div
-                    className="space-y-1"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                >
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                        Email <span className="text-red-400">*</span>
-                    </label>
-                    <motion.input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onBlur={() => handleBlur('email')}
-                        variants={inputVariants}
-                        whileFocus="focus"
-                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.email ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
-                            }`}
-                        placeholder="e.g. ghost@coven.com"
-                    />
-                    {errors.email && (
-                        <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-xs mt-1 ml-1">{errors.email}</motion.p>
-                    )}
-                </motion.div>
+                            {/* Email */}
+                            <motion.div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                                    Email <span className="text-red-400">*</span>
+                                </label>
+                                <motion.input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    onBlur={() => handleBlur('email')}
+                                    variants={inputVariants}
+                                    whileFocus="focus"
+                                    className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.email ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'}`}
+                                    placeholder="e.g. ghost@coven.com"
+                                />
+                                {errors.email && <p className="text-red-400 text-xs mt-1 ml-1">{errors.email}</p>}
+                            </motion.div>
 
-                {/* Password */}
-                <motion.div
-                    className="space-y-1"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                >
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                        Password <span className="text-red-400">*</span>
-                    </label>
-                    <motion.input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onBlur={() => handleBlur('password')}
-                        variants={inputVariants}
-                        whileFocus="focus"
-                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.password ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
-                            }`}
-                        placeholder="••••••••"
-                    />
-                    {password && (
-                        <div className="mt-2">
-                            <div className="flex gap-1 mb-1">
-                                {[1, 2, 3].map((level) => (
-                                    <motion.div
-                                        key={level}
-                                        className={`h-1 flex-1 rounded-full ${passwordStrength.level >= level ? passwordStrength.color : 'bg-gray-700'}`}
-                                        initial={{ scaleX: 0 }}
-                                        animate={{ scaleX: passwordStrength.level >= level ? 1 : 0.3 }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                ))}
+                            {/* Password */}
+                            <motion.div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                                    Password <span className="text-red-400">*</span>
+                                </label>
+                                <motion.input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onBlur={() => handleBlur('password')}
+                                    variants={inputVariants}
+                                    whileFocus="focus"
+                                    className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.password ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'}`}
+                                    placeholder="••••••••"
+                                />
+                                {password && (
+                                    <div className="mt-2">
+                                        <div className="flex gap-1 mb-1">
+                                            {[1, 2, 3].map((level) => (
+                                                <div key={level} className={`h-1 flex-1 rounded-full ${passwordStrength.level >= level ? passwordStrength.color : 'bg-gray-700'}`} />
+                                            ))}
+                                        </div>
+                                        <p className={`text-xs ${passwordStrength.level === 1 ? 'text-red-400' : passwordStrength.level === 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                                            Password strength: {passwordStrength.text}
+                                        </p>
+                                    </div>
+                                )}
+                                {errors.password && <p className="text-red-400 text-xs mt-1 ml-1">{errors.password}</p>}
+                            </motion.div>
+
+                            {/* Confirm Password */}
+                            <motion.div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                                    Confirm Password <span className="text-red-400">*</span>
+                                </label>
+                                <motion.input
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    onBlur={() => handleBlur('confirmPassword')}
+                                    variants={inputVariants}
+                                    whileFocus="focus"
+                                    className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.confirmPassword ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'}`}
+                                    placeholder="••••••••"
+                                />
+                                {errors.confirmPassword && <p className="text-red-400 text-xs mt-1 ml-1">{errors.confirmPassword}</p>}
+                            </motion.div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="verify-fields"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-4"
+                        >
+                            {/* OTP Input */}
+                            <motion.div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                                    Verification Code <span className="text-red-400">*</span>
+                                </label>
+                                <motion.input
+                                    type="text"
+                                    value={otp}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
+                                        setOtp(val);
+                                    }}
+                                    variants={inputVariants}
+                                    whileFocus="focus"
+                                    className={`w-full p-4 bg-black/40 border rounded-xl text-white text-center text-2xl tracking-[0.5em] focus:outline-none transition-all placeholder-gray-700 ${errors.otp ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'}`}
+                                    placeholder="000000"
+                                />
+                                {errors.otp && <p className="text-red-400 text-xs mt-1 ml-1">{errors.otp}</p>}
+                            </motion.div>
+
+                            <div className="flex justify-between items-center text-xs mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setStep('signup')}
+                                    className="text-gray-400 hover:text-white transition-colors"
+                                >
+                                    ← Change Email
+                                </button>
+                                <span className="text-gray-500">Check your spam folder too</span>
                             </div>
-                            <p className={`text-xs ${passwordStrength.level === 1 ? 'text-red-400' : passwordStrength.level === 2 ? 'text-yellow-400' : 'text-green-400'}`}>
-                                Password strength: {passwordStrength.text}
-                            </p>
-                        </div>
+                        </motion.div>
                     )}
-                    {errors.password && (
-                        <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-xs mt-1 ml-1">{errors.password}</motion.p>
-                    )}
-                </motion.div>
-
-                {/* Confirm Password */}
-                <motion.div
-                    className="space-y-1"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                >
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                        Confirm Password <span className="text-red-400">*</span>
-                    </label>
-                    <motion.input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        onBlur={() => handleBlur('confirmPassword')}
-                        variants={inputVariants}
-                        whileFocus="focus"
-                        className={`w-full p-2.5 bg-black/40 border rounded-xl text-white focus:outline-none transition-all placeholder-gray-700 ${errors.confirmPassword ? 'border-red-500' : 'border-white/10 focus:border-halloween-purple focus:ring-1 focus:ring-halloween-purple'
-                            }`}
-                        placeholder="••••••••"
-                    />
-                    {errors.confirmPassword && (
-                        <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-red-400 text-xs mt-1 ml-1">{errors.confirmPassword}</motion.p>
-                    )}
-                </motion.div>
+                </AnimatePresence>
 
                 <motion.button
                     type="submit"
                     disabled={isLoading}
                     className="w-full py-3.5 px-4 bg-gradient-to-r from-halloween-purple-dim to-halloween-purple text-white font-bold rounded-xl transition-all shadow-lg shadow-halloween-purple/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
                     whileHover={{ boxShadow: '0 0 30px rgba(176, 38, 255, 0.4)' }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -346,10 +414,10 @@ const Signup = ({ onSignup, switchToLogin }) => {
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </motion.svg>
-                            Creating Account...
+                            {step === 'signup' ? 'Summoning Code...' : 'Verifying Spell...'}
                         </span>
                     ) : (
-                        'Resurrect Me'
+                        step === 'signup' ? 'Resurrect Me' : 'Complete Ritual'
                     )}
                 </motion.button>
             </form>

@@ -11,7 +11,7 @@ router.use(protect);
 // @access  Private (any authenticated user)
 router.get('/', async (req, res) => {
     try {
-        const notes = await Note.find().sort({ createdAt: -1 });
+        const notes = await Note.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
 
         // Return notes with ownership info
         const sanitizedNotes = notes.map(note => ({
@@ -19,7 +19,8 @@ router.get('/', async (req, res) => {
             title: note.title,
             content: note.content,
             createdAt: note.createdAt,
-            isOwner: note.createdBy?.toString() === req.user._id.toString()
+            userEmail: note.userEmail,
+            isOwner: true // Since we filtered by createdBy, they are the owner
         }));
 
         res.json(sanitizedNotes);
@@ -34,7 +35,7 @@ router.get('/', async (req, res) => {
 // @access  Private
 router.get('/:id', async (req, res) => {
     try {
-        const note = await Note.findById(req.params.id);
+        const note = await Note.findOne({ _id: req.params.id, createdBy: req.user._id });
 
         if (!note) {
             return res.status(404).json({ error: 'Note not found' });
@@ -45,7 +46,8 @@ router.get('/:id', async (req, res) => {
             title: note.title,
             content: note.content,
             createdAt: note.createdAt,
-            isOwner: note.createdBy?.toString() === req.user._id.toString()
+            userEmail: note.userEmail,
+            isOwner: true
         });
     } catch (error) {
         // Handle invalid ObjectId
@@ -80,7 +82,8 @@ router.post('/', async (req, res) => {
         const newNote = new Note({
             title: title.trim(),
             content: content.trim(),
-            createdBy: req.user._id
+            createdBy: req.user._id,
+            userEmail: req.user.email
         });
 
         await newNote.save();
@@ -90,6 +93,7 @@ router.post('/', async (req, res) => {
             title: newNote.title,
             content: newNote.content,
             createdAt: newNote.createdAt,
+            userEmail: newNote.userEmail,
             isOwner: true
         });
     } catch (error) {
@@ -146,6 +150,7 @@ router.put('/:id', async (req, res) => {
             content: note.content,
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
+            userEmail: note.userEmail,
             isOwner
         });
     } catch (error) {

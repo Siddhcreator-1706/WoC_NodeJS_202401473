@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const PendingUser = require('../models/PendingUser');
 const Session = require('../models/Session');
 const { protect } = require('../middleware/auth');
 
@@ -32,10 +33,7 @@ const isValidPassword = (password) => {
 };
 
 // @route   POST /auth/signup
-// @desc    Register a new user
-// @access  Public
-// @route   POST /auth/signup
-// @desc    Register a new user
+// @desc    Register a new user (Stage 1: Create PendingUser & Send OTP)
 // @access  Public
 router.post('/signup', async (req, res) => {
     try {
@@ -66,7 +64,7 @@ router.post('/signup', async (req, res) => {
             });
         }
 
-        // Check if user already exists
+        // Check if user already exists in MAIN database
         const existingUser = await User.findOne({
             $or: [{ email: email.toLowerCase() }, { username }]
         });
@@ -78,48 +76,54 @@ router.post('/signup', async (req, res) => {
             return res.status(409).json({ error: 'Username already taken' });
         }
 
-        // Generate verification token
-        const crypto = require('crypto');
-        const verificationToken = crypto.randomBytes(20).toString('hex');
-        const verificationTokenHash = crypto
-            .createHash('sha256')
-            .update(verificationToken)
-            .digest('hex');
-
-        // Create user
-        const user = await User.create({
-            username,
-            email: email.toLowerCase(),
-            password,
-            role: 'user',
-            verificationToken: verificationTokenHash,
-            verificationTokenExpire: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-            isVerified: false
+        // Check if there is already a PENDING registration
+        const existingPending = await PendingUser.findOne({
+            $or: [{ email: email.toLowerCase() }, { username }]
         });
 
-        // Create verification URL
-        const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify/${verificationToken}`;
+        if (existingPending) {
+            await PendingUser.deleteOne({ _id: existingPending._id });
+        }
+
+        // Generate OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Hash OTP
+        const crypto = require('crypto');
+        const otpHash = crypto
+            .createHash('sha256')
+            .update(otp)
+            .digest('hex');
+
+        // Create Pending User (Password will be hashed by PendingUser pre-save hook)
+        const pendingUser = await PendingUser.create({
+            username,
+            email: email.toLowerCase(),
+            password, // Plain password passed here, Schema hashes it
+            otp: otpHash
+        });
 
         // Send email
         const sendEmail = require('../utils/sendEmail');
         try {
             await sendEmail({
-                email: user.email,
-                subject: 'Email Verification',
-                message: `Please verify your email by clicking the following link: ${verifyUrl}`,
+                email: pendingUser.email,
+                subject: 'Your Verification Code',
+                message: `Your verification code is: ${otp}`,
                 html: `<h1>Email Verification</h1>
-                       <p>Please verify your email by clicking the following link:</p>
-                       <a href="${verifyUrl}">${verifyUrl}</a>`
+                       <p>Your verification code is:</p>
+                       <h2 style="color: #4CAF50; letter-spacing: 5px;">${otp}</h2>
+                       <p>This code expires in 24 hours.</p>`
             });
 
             res.status(201).json({
-                message: 'User created successfully. Please check your email to verify your account.'
+                message: 'Verification code sent. Please check your email to complete registration.'
             });
         } catch (emailError) {
             console.error('Email send error:', emailError);
-            // Optionally delete the user if email email fails, or just let them retry
-            // await User.findByIdAndDelete(user._id); 
-            return res.status(500).json({ error: 'User created, but email could not be sent. Please contact support.' });
+            // Delete the pending user since email failed
+            await PendingUser.findByIdAndDelete(pendingUser._id);
+            return res.status(500).json({ error: 'Email could not be sent. Please contact support.' });
         }
 
     } catch (error) {
@@ -131,40 +135,62 @@ router.post('/signup', async (req, res) => {
         }
 
         if (error.code === 11000) {
-            const field = Object.keys(error.keyPattern)[0];
-            return res.status(409).json({ error: `${field} already exists` });
+            // Should be caught by earlier checks, but just in case
+            return res.status(409).json({ error: 'User already exists' });
         }
 
         res.status(500).json({ error: 'Server error during registration' });
     }
 });
 
-// @route   GET /auth/verify/:token
-// @desc    Verify email address
+// @route   POST /auth/verify-otp
+// @desc    Verify OTP and Create User
 // @access  Public
-router.get('/verify/:token', async (req, res) => {
+router.post('/verify-otp', async (req, res) => {
     try {
-        const crypto = require('crypto');
-        const verificationTokenHash = crypto
-            .createHash('sha256')
-            .update(req.params.token)
-            .digest('hex');
+        const { email, otp } = req.body;
 
-        const user = await User.findOne({
-            verificationToken: verificationTokenHash,
-            verificationTokenExpire: { $gt: Date.now() }
-        });
-
-        if (!user) {
-            return res.status(400).json({ error: 'Invalid or expired verification token' });
+        if (!email || !otp) {
+            return res.status(400).json({ error: 'Email and OTP are required' });
         }
 
-        user.isVerified = true;
-        user.verificationToken = undefined;
-        user.verificationTokenExpire = undefined;
-        await user.save();
+        const crypto = require('crypto');
+        const otpHash = crypto
+            .createHash('sha256')
+            .update(otp)
+            .digest('hex');
 
-        res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
+        // Find in PENDING users by EMAIL
+        const pendingUser = await PendingUser.findOne({
+            email: email.toLowerCase()
+        });
+
+        if (!pendingUser) {
+            return res.status(400).json({ error: 'No pending registration found for this email' });
+        }
+
+        // Check OTP
+        if (pendingUser.otp !== otpHash) {
+            return res.status(400).json({ error: 'Invalid verification code' });
+        }
+
+        // Move to Real User Collection
+        const newUser = {
+            username: pendingUser.username,
+            email: pendingUser.email,
+            password: pendingUser.password, // Already hashed
+            role: 'user',
+            isVerified: true,
+            createdAt: Date.now()
+        };
+
+        // Using insertMany to bypass pre-save hook that re-hashes password
+        await User.insertMany([newUser]);
+
+        // Remove from Pending
+        await PendingUser.deleteOne({ _id: pendingUser._id });
+
+        res.status(200).json({ message: 'Email verified successfully. Account created! You can now log in.' });
     } catch (error) {
         console.error('Verification error:', error);
         res.status(500).json({ error: 'Server error during verification' });

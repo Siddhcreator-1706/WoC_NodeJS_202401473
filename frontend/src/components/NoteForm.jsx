@@ -45,11 +45,10 @@ const NoteForm = ({ onAdd, onUpdate, editingNote, onCancelEdit }) => {
             onAdd({ title: title.trim(), content: content.trim() });
         }
 
-        if (!editingNote) {
-            setTitle('');
-            setContent('');
-            setIsExpanded(false);
-        }
+        // Always clear fields after submission (both add and update)
+        setTitle('');
+        setContent('');
+        setIsExpanded(false);
     };
 
     const handleCancel = () => {
