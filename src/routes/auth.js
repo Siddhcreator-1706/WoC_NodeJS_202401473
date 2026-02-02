@@ -259,16 +259,16 @@ router.post('/login', async (req, res) => {
         const options = {
             expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-            sameSite: 'strict' // Protect against CSRF
+            secure: true, // Always secure for SameSite: None 
+            sameSite: 'None' // Allow cross-site (Frontend -> Backend)
         };
 
         // Set Flag Cookie (readable by JS)
         const flagOptions = {
             expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             httpOnly: false, // Explicitly false so JS can read it
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict'
+            secure: true,
+            sameSite: 'None'
         };
 
         res.status(200)
@@ -308,11 +308,15 @@ router.post('/logout', protect, async (req, res) => {
         res.status(200)
             .cookie('token', 'none', {
                 expires: new Date(Date.now() + 10 * 1000),
-                httpOnly: true
+                httpOnly: true,
+                secure: true,
+                sameSite: 'None'
             })
             .cookie('logged_in', 'none', {
                 expires: new Date(Date.now() + 10 * 1000),
-                httpOnly: false
+                httpOnly: false,
+                secure: true,
+                sameSite: 'None'
             })
             .json({ message: 'Logged out successfully' });
     } catch (error) {

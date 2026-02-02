@@ -2,7 +2,6 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
     // Create a transporter
-    // Create a transporter
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.ethereal.email',
         port: process.env.SMTP_PORT || 587,
