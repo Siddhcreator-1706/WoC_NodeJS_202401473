@@ -263,23 +263,34 @@ router.post('/login', async (req, res) => {
             sameSite: 'strict' // Protect against CSRF
         };
 
-        res.status(200).cookie('token', token, options).json({
-            message: 'Login successful',
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                role: user.role
-            },
-            token, // Keep sending token for now for backward compatibility if needed, or remove it. I will keep it but frontend will ignore.
-            sessionId: session._id
-        });
+        // Set Flag Cookie (readable by JS)
+        const flagOptions = {
+            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            httpOnly: false, // Explicitly false so JS can read it
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+        };
+
+        res.status(200)
+            .cookie('token', token, options)
+            .cookie('logged_in', 'true', flagOptions)
+            .json({
+                message: 'Login successful',
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    role: user.role
+                },
+                token,
+                sessionId: session._id
+            });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({
             error: 'Server error during login',
-            details: error.message, // Temporary for debugging
-            stack: error.stack // Temporary for debugging
+            details: error.message,
+            stack: error.stack
         });
     }
 });
@@ -294,15 +305,23 @@ router.post('/logout', protect, async (req, res) => {
             await Session.invalidateSession(token);
         }
 
-        res.status(200).cookie('token', 'none', {
-            expires: new Date(Date.now() + 10 * 1000),
-            httpOnly: true
-        }).json({ message: 'Logged out successfully' });
+        res.status(200)
+            .cookie('token', 'none', {
+                expires: new Date(Date.now() + 10 * 1000),
+                httpOnly: true
+            })
+            .cookie('logged_in', 'none', {
+                expires: new Date(Date.now() + 10 * 1000),
+                httpOnly: false
+            })
+            .json({ message: 'Logged out successfully' });
     } catch (error) {
         console.error('Logout error:', error);
         res.status(500).json({ error: 'Server error during logout' });
     }
 });
+
+// ... (Logout all and sessions routes remain unchanged)
 
 // @route   POST /auth/logout-all
 // @desc    Logout from all devices (invalidate all sessions)

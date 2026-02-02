@@ -82,7 +82,18 @@ function App() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // We no longer check for token in localStorage. We just try to hit /auth/me
+      // Check for 'logged_in' flag cookie (Double Cookie Pattern)
+      const isLoggedInQuery = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('logged_in='))
+        ?.split('=')[1];
+
+      if (isLoggedInQuery !== 'true') {
+        // No flag cookie? Don't bother the server.
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch('/auth/me');
         if (res.ok) {
@@ -90,7 +101,8 @@ function App() {
           setUser(data.user);
           setView('home');
         } else {
-          // Not logged in or session expired
+          // Cookie existed but token was invalid (Stale state). 
+          // Browser console will show 401, which is correct here (drift).
         }
       } catch (err) {
         console.error('Auth check failed', err);

@@ -7,11 +7,6 @@ if (!cached) {
 }
 
 const connectDB = async () => {
-    if (!process.env.MONGODB_URI) {
-        console.error('FATAL: MONGODB_URI environment variable is missing');
-        throw new Error('MONGODB_URI environment variable is missing');
-    }
-
     // If connection is already established, reuse it
     if (cached.conn) {
         console.log('Using cached MongoDB connection');
