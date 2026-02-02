@@ -2,13 +2,22 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
     // Create a transporter
+    console.log(`Debug Env: HOST=${process.env.SMTP_HOST ? 'Set' : 'Missing'}, PORT=${process.env.SMTP_PORT}, USER=${process.env.SMTP_EMAIL ? process.env.SMTP_EMAIL : 'Missing'}, PASS=${process.env.SMTP_PASSWORD ? 'Set' : 'Missing'}`);
+
+    // Explicitly casting port to number
+    const port = Number(process.env.SMTP_PORT) || 587;
+
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-        port: process.env.SMTP_PORT || 587,
+        port: port,
+        secure: port === 465, // true for 465, false for other ports
         auth: {
             user: process.env.SMTP_EMAIL,
             pass: process.env.SMTP_PASSWORD
-        }
+        },
+        // Add debug options
+        debug: true,
+        logger: true
     });
 
     // Define the email options

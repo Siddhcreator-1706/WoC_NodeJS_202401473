@@ -139,7 +139,11 @@ router.post('/signup', async (req, res) => {
             return res.status(409).json({ error: 'User already exists' });
         }
 
-        res.status(500).json({ error: 'Server error during registration' });
+        // Return actual error message in production for debugging purposes this time
+        res.status(500).json({
+            error: 'Server error during registration',
+            details: error.message
+        });
     }
 });
 
