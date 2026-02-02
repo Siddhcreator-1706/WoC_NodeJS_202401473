@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/react';
 import Navbar from './components/Navbar';
 import NoteForm from './components/NoteForm';
 import NoteList from './components/NoteList';
@@ -331,6 +332,7 @@ function App() {
           />
         ))}
       </div>
+      <Analytics />
     </div>
   );
 }
