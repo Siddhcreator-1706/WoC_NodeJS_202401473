@@ -2,7 +2,13 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
     // Create a transporter
-    console.log(`Debug Env: HOST=${process.env.SMTP_HOST ? 'Set' : 'Missing'}, PORT=${process.env.SMTP_PORT}, USER=${process.env.SMTP_EMAIL ? process.env.SMTP_EMAIL : 'Missing'}, PASS=${process.env.SMTP_PASSWORD ? 'Set' : 'Missing'}`);
+    // Safe debug logging: show length and partial characters to detect spaces or truncation
+    const pass = process.env.SMTP_PASSWORD || '';
+    const safePass = pass.length > 4
+        ? `${pass.substring(0, 2)}...${pass.substring(pass.length - 2)} (len=${pass.length})`
+        : (pass ? `[SHORT-PASS len=${pass.length}]` : 'Missing');
+
+    console.log(`Debug Env: HOST=${process.env.SMTP_HOST || 'Missing'}, PORT=${process.env.SMTP_PORT}, USER=${process.env.SMTP_EMAIL || 'Missing'}, PASS=${safePass}`);
 
     // Explicitly casting port to number
     const port = Number(process.env.SMTP_PORT) || 587;
