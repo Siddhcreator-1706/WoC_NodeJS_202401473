@@ -55,6 +55,3 @@ jobs:
       run: npm run lint
     - name: Build Frontend
       run: npm run build
-
-      - name: Build Frontend
-        run: npm run build
