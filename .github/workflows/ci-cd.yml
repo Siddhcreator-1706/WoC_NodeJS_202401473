@@ -8,18 +8,18 @@ on:
   workflow_dispatch:
 
 jobs:
-#   security-audit:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v4
-#       - name: Audit Backend Dependencies
-#         run: npm audit --audit-level=high
-#       - name: Audit Frontend Dependencies
-#         working-directory: ./frontend
-#         run: npm audit --audit-level=high
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit Backend Dependencies
+        run: npm audit --audit-level=high
+      - name: Audit Frontend Dependencies
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
 
   backend-checks:
-    # needs: security-audit
+    needs: security-audit
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
       run: npm test
 
   frontend-checks:
-    # needs: security-audit
+    needs: security-audit
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -57,7 +57,7 @@ jobs:
       run: npm run build
 
   deploy:
-    needs: [backend-checks, frontend-checks]
+    needs: [backend-checks, frontend-checks, security-audit]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
